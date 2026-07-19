@@ -1,0 +1,23 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": "./",
+    "declaration": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "target": "ES2022",
+    "sourceMap": true,
+    "incremental": true,
+    "paths": {
+      "@historial/shared-types": ["../../packages/shared-types/src/index.ts"],
+      "@historial/validators": ["../../packages/validators/src/index.ts"],
+      "@historial/constants": ["../../packages/constants/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

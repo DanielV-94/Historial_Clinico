@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Testing
+coverage/
+
+# Prisma
+prisma/*.db
+
+# Uploads
+uploads/
+
+# Turbo
+.turbo/
+
+# SSL certificates (never commit private keys)
+nginx/ssl/*.pem
+nginx/ssl/*.key
+nginx/ssl/*.crt

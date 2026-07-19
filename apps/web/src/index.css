@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Theme CSS custom properties (overridden by ThemeProvider) */
+    --color-primary: #3b82f6;
+    --color-secondary: #1e40af;
+    --color-accent: #3b82f6;
+    --font-family: 'Inter', system-ui, sans-serif;
+
+    /* Glassmorphism base palette */
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+    --glass-blur: 12px;
+  }
+
+  .dark {
+    --glass-bg: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(71, 85, 105, 0.3);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  html {
+    font-family: var(--font-family);
+  }
+
+  body {
+    @apply bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100;
+    min-width: 320px;
+  }
+
+  /* Smooth dark mode transition */
+  html,
+  body,
+  * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+}
+
+@layer components {
+  /* Glassmorphism utility classes */
+  .glass {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 1rem;
+  }
+
+  .glass-sm {
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 16px 0 rgba(31, 38, 135, 0.1);
+    border-radius: 0.75rem;
+  }
+
+  .glass-lg {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--glass-shadow);
+    border-radius: 1.5rem;
+  }
+
+  /* Responsive container utility */
+  .container-responsive {
+    @apply w-full mx-auto px-4;
+  }
+
+  /* Mobile: 320-767px */
+  @media (min-width: 320px) and (max-width: 767px) {
+    .container-responsive {
+      @apply px-4 max-w-full;
+    }
+  }
+
+  /* Tablet: 768-1023px */
+  @media (min-width: 768px) and (max-width: 1023px) {
+    .container-responsive {
+      @apply px-6 max-w-3xl;
+    }
+  }
+
+  /* Desktop: 1024px+ */
+  @media (min-width: 1024px) {
+    .container-responsive {
+      @apply px-8 max-w-7xl;
+    }
+  }
+}
+
+@layer utilities {
+  /* Primary color utilities using CSS variables */
+  .text-theme-primary {
+    color: var(--color-primary);
+  }
+
+  .text-theme-secondary {
+    color: var(--color-secondary);
+  }
+
+  .bg-theme-primary {
+    background-color: var(--color-primary);
+  }
+
+  .bg-theme-secondary {
+    background-color: var(--color-secondary);
+  }
+
+  .border-theme-primary {
+    border-color: var(--color-primary);
+  }
+
+  .border-theme-secondary {
+    border-color: var(--color-secondary);
+  }
+
+  .ring-theme-primary {
+    --tw-ring-color: var(--color-primary);
+  }
+
+  /* Hide on specific breakpoints */
+  .hide-mobile {
+    @apply hidden sm:block;
+  }
+
+  .hide-desktop {
+    @apply block sm:hidden;
+  }
+
+  /* Responsive text scale */
+  .text-responsive-sm {
+    @apply text-xs sm:text-sm lg:text-base;
+  }
+
+  .text-responsive-base {
+    @apply text-sm sm:text-base lg:text-lg;
+  }
+
+  .text-responsive-lg {
+    @apply text-base sm:text-lg lg:text-xl;
+  }
+
+  .text-responsive-xl {
+    @apply text-lg sm:text-xl lg:text-2xl;
+  }
+}

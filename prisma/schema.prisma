@@ -1,0 +1,344 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ──────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  doctor
+  assistant
+  admin
+  kiosk
+
+  @@map("user_role")
+}
+
+enum PatientSex {
+  M
+  F
+  O
+
+  @@map("patient_sex")
+}
+
+enum BloodType {
+  A_POS
+  A_NEG
+  B_POS
+  B_NEG
+  AB_POS
+  AB_NEG
+  O_POS
+  O_NEG
+
+  @@map("blood_type")
+}
+
+enum AuditAction {
+  create
+  read
+  update
+  delete
+
+  @@map("audit_action")
+}
+
+enum AuditResult {
+  success
+  failure
+
+  @@map("audit_result")
+}
+
+enum PrescriptionStatus {
+  pending
+  read
+  completed
+
+  @@map("prescription_status")
+}
+
+enum AppointmentStatus {
+  scheduled
+  in_progress
+  completed
+  cancelled
+
+  @@map("appointment_status")
+}
+
+enum FileCategory {
+  pdf
+  image
+  video
+
+  @@map("file_category")
+}
+
+enum BackupStatus {
+  success
+  failed
+  retrying
+
+  @@map("backup_status")
+}
+
+// ─── Models ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id                  String    @id @default(uuid()) @db.Uuid
+  username            String    @unique
+  passwordHash        String    @map("password_hash")
+  role                UserRole
+  fullName            String    @map("full_name")
+  email               String
+  isActive            Boolean   @default(true) @map("is_active")
+  failedLoginAttempts Int       @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime? @map("locked_until")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  clinicalNotes         ClinicalNote[] @relation("NoteAuthor")
+  prescriptionsGiven    Prescription[] @relation("PrescriptionDoctor")
+  prescriptionsAssigned Prescription[] @relation("PrescriptionAssignee")
+  filesUploaded         FileMetadata[] @relation("FileUploader")
+  appointmentsAsDoctor  Appointment[]  @relation("AppointmentDoctor")
+
+  @@map("users")
+}
+
+model Patient {
+  id                       String     @id @default(uuid()) @db.Uuid
+  fullName                 String     @map("full_name")
+  birthDate                DateTime   @map("birth_date") @db.Date
+  sex                      PatientSex
+  phone                    String
+  email                    String?
+  address                  String?
+  bloodType                BloodType? @map("blood_type")
+  emergencyContactName     String?    @map("emergency_contact_name")
+  emergencyContactPhone    String?    @map("emergency_contact_phone")
+  emergencyContactRelation String?    @map("emergency_contact_relation")
+  insuranceProvider        String?    @map("insurance_provider")
+  insurancePolicyNumber    String?    @map("insurance_policy_number")
+  profilePhotoPath         String?    @map("profile_photo_path")
+  createdAt                DateTime   @default(now()) @map("created_at")
+  updatedAt                DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  allergies         Allergy[]
+  previousSurgeries PreviousSurgery[]
+  clinicalNotes     ClinicalNote[]
+  prescriptions     Prescription[]
+  appointments      Appointment[]
+  files             FileMetadata[]
+  signatures        SignatureRecord[]
+
+  @@index([fullName])
+  @@map("patients")
+}
+
+model Allergy {
+  id          String   @id @default(uuid()) @db.Uuid
+  patientId   String   @map("patient_id") @db.Uuid
+  description String   @db.VarChar(200)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("allergies")
+}
+
+model PreviousSurgery {
+  id          String   @id @default(uuid()) @db.Uuid
+  patientId   String   @map("patient_id") @db.Uuid
+  name        String
+  surgeryDate DateTime @map("surgery_date") @db.Date
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("previous_surgeries")
+}
+
+model ClinicalNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  patientId String   @map("patient_id") @db.Uuid
+  authorId  String   @map("author_id") @db.Uuid
+  content   String   @db.VarChar(10000)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  author  User    @relation("NoteAuthor", fields: [authorId], references: [id])
+
+  @@index([patientId, createdAt(sort: Desc)])
+  @@map("clinical_notes")
+}
+
+model Prescription {
+  id          String             @id @default(uuid()) @db.Uuid
+  patientId   String             @map("patient_id") @db.Uuid
+  doctorId    String             @map("doctor_id") @db.Uuid
+  assignedTo  String             @map("assigned_to") @db.Uuid
+  content     String
+  status      PrescriptionStatus @default(pending)
+  readAt      DateTime?          @map("read_at")
+  completedAt DateTime?          @map("completed_at")
+  createdAt   DateTime           @default(now()) @map("created_at")
+
+  // Relations
+  patient  Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor   User    @relation("PrescriptionDoctor", fields: [doctorId], references: [id])
+  assignee User    @relation("PrescriptionAssignee", fields: [assignedTo], references: [id])
+
+  @@index([assignedTo, status])
+  @@map("prescriptions")
+}
+
+model Appointment {
+  id              String            @id @default(uuid()) @db.Uuid
+  patientId       String            @map("patient_id") @db.Uuid
+  doctorId        String            @map("doctor_id") @db.Uuid
+  appointmentDate DateTime          @map("appointment_date") @db.Date
+  appointmentTime DateTime          @map("appointment_time") @db.Time()
+  reason          String
+  status          AppointmentStatus @default(scheduled)
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  patient   Patient               @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  doctor    User                  @relation("AppointmentDoctor", fields: [doctorId], references: [id])
+  materials AppointmentMaterial[]
+
+  @@index([appointmentDate, doctorId])
+  @@map("appointments")
+}
+
+model AppointmentMaterial {
+  id            String  @id @default(uuid()) @db.Uuid
+  appointmentId String  @map("appointment_id") @db.Uuid
+  materialName  String  @map("material_name")
+  quantity      Int
+  notes         String?
+
+  // Relations
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@map("appointment_materials")
+}
+
+model FileMetadata {
+  id             String       @id @default(uuid()) @db.Uuid
+  patientId      String       @map("patient_id") @db.Uuid
+  uploadedBy     String       @map("uploaded_by") @db.Uuid
+  originalName   String       @map("original_name")
+  uniqueName     String       @map("unique_name")
+  storagePath    String       @map("storage_path")
+  mimeType       String       @map("mime_type")
+  sizeBytes      BigInt       @map("size_bytes")
+  checksum       String
+  category       FileCategory
+  studyType      String?      @map("study_type")
+  captureDate    DateTime?    @map("capture_date") @db.Date
+  anatomicalZone String?      @map("anatomical_zone")
+  notes          String?
+  hasWatermark   Boolean      @default(false) @map("has_watermark")
+  uploadedAt     DateTime     @default(now()) @map("uploaded_at")
+
+  // Relations
+  patient  Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  uploader User    @relation("FileUploader", fields: [uploadedBy], references: [id])
+
+  @@index([patientId, category])
+  @@map("file_metadata")
+}
+
+model AuditLog {
+  id          BigInt      @id @default(autoincrement())
+  userId      String      @map("user_id") @db.Uuid
+  userRole    UserRole    @map("user_role")
+  action      AuditAction
+  entityTable String      @map("entity_table")
+  entityId    String      @map("entity_id")
+  description String?
+  ipAddress   String      @map("ip_address")
+  result      AuditResult
+  metadata    Json?
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  @@index([createdAt(sort: Desc)])
+  @@index([userId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+model Clinic {
+  id               String   @id @default(uuid()) @db.Uuid
+  name             String
+  address          String
+  phone            String
+  privacyNotice    Json?    @map("privacy_notice")
+  letterheadConfig Json?    @map("letterhead_config")
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  // Relations
+  themeConfig ThemeConfig?
+
+  @@map("clinics")
+}
+
+model ThemeConfig {
+  id             String   @id @default(uuid()) @db.Uuid
+  clinicId       String   @unique @map("clinic_id") @db.Uuid
+  clinicName     String   @map("clinic_name")
+  logoPath       String?  @map("logo_path")
+  primaryColor   String   @map("primary_color")
+  secondaryColor String   @map("secondary_color")
+  accentColor    String   @map("accent_color")
+  fontFamily     String   @map("font_family")
+  rawConfig      Json?    @map("raw_config")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  clinic Clinic @relation(fields: [clinicId], references: [id], onDelete: Cascade)
+
+  @@map("theme_configs")
+}
+
+model BackupRecord {
+  id           String       @id @default(uuid()) @db.Uuid
+  executedAt   DateTime     @map("executed_at")
+  sizeBytes    BigInt       @map("size_bytes")
+  filePath     String       @map("file_path")
+  checksum     String
+  status       BackupStatus
+  errorMessage String?      @map("error_message")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  @@map("backup_records")
+}
+
+model SignatureRecord {
+  id                 String   @id @default(uuid()) @db.Uuid
+  patientId          String   @map("patient_id") @db.Uuid
+  signatureImagePath String   @map("signature_image_path")
+  documentType       String   @map("document_type")
+  signedAt           DateTime @map("signed_at")
+
+  // Relations
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@map("signature_records")
+}
